@@ -1,0 +1,12 @@
+services:
+  tabby-calendar:
+    build: .
+    ports:
+      - "3210:3000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DATABASE_PATH=/app/data/tabby.db
+      - SESSION_SECRET=${SESSION_SECRET}
+      - NODE_ENV=production
+    restart: unless-stopped
