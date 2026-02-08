@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { t, type Locale } from '@/lib/i18n';
 import { DeleteClassButton } from '@/components/DeleteClassButton';
+import { getColorKeywords, resolveKeywordColor } from '@/lib/color-keywords';
 
 function StatusBadge({ status, locale }: { status: string; locale: Locale }) {
   const colors: Record<string, string> = {
@@ -50,6 +51,8 @@ export default async function ClassesPage() {
     const firstDate = firstLesson?.date || cls.createdAt.slice(0, 10);
     return { ...cls, teachers, firstDate };
   });
+
+  const keywords = getColorKeywords();
 
   // Sort by first lesson date, latest first
   classesWithTeachers.sort((a, b) => b.firstDate.localeCompare(a.firstDate));
@@ -99,7 +102,7 @@ export default async function ClassesPage() {
                         <div className="flex items-center gap-3 min-w-0">
                           <div
                             className="w-3 h-3 rounded-full shrink-0"
-                            style={{ backgroundColor: cls.color || '#4A90D9' }}
+                            style={{ backgroundColor: resolveKeywordColor(cls.name, keywords) || cls.color || '#4A90D9' }}
                           />
                           <div className="min-w-0">
                             <div className="font-medium truncate">{cls.name}</div>

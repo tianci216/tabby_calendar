@@ -45,7 +45,6 @@ const DAYS = [
   { value: 0, label: 'sunday' },
 ];
 
-const COLORS = ['#4A90D9', '#E74C3C', '#2ECC71', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22', '#3498DB'];
 
 export function ClassForm({ teachers, initialData }: ClassFormProps) {
   const router = useRouter();
@@ -386,22 +385,6 @@ export function ClassForm({ teachers, initialData }: ClassFormProps) {
           </div>
         </>
       )}
-
-      {/* Color */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">{t('color')}</label>
-        <div className="flex gap-2">
-          {COLORS.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setColor(c)}
-              className={`w-8 h-8 rounded-full border-2 ${color === c ? 'border-gray-800' : 'border-transparent'}`}
-              style={{ backgroundColor: c }}
-            />
-          ))}
-        </div>
-      </div>
 
       {/* Notes */}
       <div>

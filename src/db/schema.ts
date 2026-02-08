@@ -82,12 +82,22 @@ export const events = sqliteTable('events', {
   endTime: text('end_time'),
   room: text('room', { enum: ['rendez_vous', 'palomar'] }),
   teacherId: integer('teacher_id').references(() => users.id),
+  isRecurring: integer('is_recurring', { mode: 'boolean' }).notNull().default(false),
+  recurrencePeriod: text('recurrence_period', { enum: ['daily', 'weekly', 'monthly'] }),
   notes: text('notes'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 }, (table) => [
   index('event_date_idx').on(table.date),
 ]);
+
+// ─── COLOR KEYWORDS ───
+export const colorKeywords = sqliteTable('color_keywords', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  keyword: text('keyword').notNull().unique(),
+  color: text('color').notNull(),
+  priority: integer('priority').notNull().default(0),
+});
 
 // ─── AUDIT LOG ───
 export const auditLog = sqliteTable('audit_log', {

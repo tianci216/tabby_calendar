@@ -96,5 +96,11 @@
   "user": "User",
   "changePassword": "Change Password",
   "newPassword": "New Password",
-  "endDate": "End Date"
+  "endDate": "End Date",
+  "colorLegend": "Color Legend",
+  "addKeyword": "Add keyword...",
+  "recurring": "Recurring",
+  "daily": "Daily",
+  "weekly2": "Weekly",
+  "monthly2": "Monthly"
 }

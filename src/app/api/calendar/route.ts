@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { classes, classTeachers, lessons, lessonTeacherOverrides, events, users } from '@/db/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { getApiUser, unauthorized, badRequest } from '@/lib/api-auth';
+import { getColorKeywords, resolveKeywordColor } from '@/lib/color-keywords';
 
 export async function GET(request: NextRequest) {
   const user = getApiUser(request);
@@ -41,6 +42,9 @@ export async function GET(request: NextRequest) {
     .orderBy(lessons.date, lessons.startTime)
     .all();
 
+  // Fetch keyword-color mappings for color resolution
+  const keywords = getColorKeywords();
+
   // For each lesson, get teachers (overrides or class-level)
   const lessonsWithTeachers = rawLessons.map((lesson) => {
     // Check for overrides first
@@ -55,8 +59,10 @@ export async function GET(request: NextRequest) {
       .where(eq(lessonTeacherOverrides.lessonId, lesson.id))
       .all();
 
+    const resolvedColor = resolveKeywordColor(lesson.className, keywords) || lesson.classColor || '#4A90D9';
+
     if (overrides.length > 0) {
-      return { ...lesson, teachers: overrides };
+      return { ...lesson, classColor: resolvedColor, teachers: overrides };
     }
 
     // Fall back to class teachers
@@ -71,10 +77,10 @@ export async function GET(request: NextRequest) {
       .where(eq(classTeachers.classId, lesson.classId))
       .all();
 
-    return { ...lesson, teachers };
+    return { ...lesson, classColor: resolvedColor, teachers };
   });
 
-  // Fetch events in date range
+  // Fetch non-recurring events in date range
   const dateEvents = db
     .select({
       id: events.id,
@@ -88,15 +94,68 @@ export async function GET(request: NextRequest) {
       teacherId: events.teacherId,
       teacherName: users.displayName,
       notes: events.notes,
+      isRecurring: events.isRecurring,
+      recurrencePeriod: events.recurrencePeriod,
     })
     .from(events)
     .leftJoin(users, eq(events.teacherId, users.id))
-    .where(and(gte(events.date, start), lte(events.date, end)))
+    .where(and(gte(events.date, start), lte(events.date, end), eq(events.isRecurring, false)))
     .orderBy(events.date, events.startTime)
     .all();
 
+  // Fetch recurring events that started on or before the end of the range
+  const recurringEvents = db
+    .select({
+      id: events.id,
+      type: events.type,
+      title: events.title,
+      date: events.date,
+      endDate: events.endDate,
+      startTime: events.startTime,
+      endTime: events.endTime,
+      room: events.room,
+      teacherId: events.teacherId,
+      teacherName: users.displayName,
+      notes: events.notes,
+      isRecurring: events.isRecurring,
+      recurrencePeriod: events.recurrencePeriod,
+    })
+    .from(events)
+    .leftJoin(users, eq(events.teacherId, users.id))
+    .where(and(lte(events.date, end), eq(events.isRecurring, true)))
+    .all();
+
+  // Expand recurring events into the date range
+  const expandedEvents: typeof dateEvents = [...dateEvents];
+  for (const event of recurringEvents) {
+    const eventDate = new Date(event.date + 'T00:00:00');
+    const rangeStart = new Date(start + 'T00:00:00');
+    const rangeEnd = new Date(end + 'T00:00:00');
+
+    let current = new Date(eventDate);
+    while (current <= rangeEnd) {
+      if (current >= rangeStart) {
+        const dateStr = current.toISOString().split('T')[0];
+        expandedEvents.push({ ...event, date: dateStr });
+      }
+      // Advance by period
+      if (event.recurrencePeriod === 'daily') {
+        current.setDate(current.getDate() + 1);
+      } else if (event.recurrencePeriod === 'weekly') {
+        current.setDate(current.getDate() + 7);
+      } else if (event.recurrencePeriod === 'monthly') {
+        current.setMonth(current.getMonth() + 1);
+      } else {
+        break;
+      }
+    }
+  }
+
+  // Sort all events by date and time
+  expandedEvents.sort((a, b) => a.date.localeCompare(b.date) || (a.startTime || '').localeCompare(b.startTime || ''));
+
   return NextResponse.json({
     lessons: lessonsWithTeachers,
-    events: dateEvents,
+    events: expandedEvents,
   });
 }

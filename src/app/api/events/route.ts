@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
   if (!user) return unauthorized();
 
   const body = await request.json();
-  const { type, title, date, endDate, startTime, endTime, room, teacherId, notes } = body;
+  const { type, title, date, endDate, startTime, endTime, room, teacherId, isRecurring, recurrencePeriod, notes } = body;
 
   if (!type || !title || !date) {
     return badRequest('Type, title, and date are required');
@@ -63,6 +63,8 @@ export async function POST(request: NextRequest) {
     endTime: endTime || null,
     room: room || null,
     teacherId: teacherId || null,
+    isRecurring: isRecurring || false,
+    recurrencePeriod: isRecurring ? recurrencePeriod : null,
     notes: notes || null,
     createdAt: now,
     updatedAt: now,

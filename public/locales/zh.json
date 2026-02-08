@@ -96,5 +96,11 @@
   "user": "用户",
   "changePassword": "修改密码",
   "newPassword": "新密码",
-  "endDate": "结束日期"
+  "endDate": "结束日期",
+  "colorLegend": "颜色图例",
+  "addKeyword": "添加关键词...",
+  "recurring": "重复",
+  "daily": "每天",
+  "weekly2": "每周",
+  "monthly2": "每月"
 }

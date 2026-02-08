@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { WeeklyGrid } from '@/components/calendar/WeeklyGrid';
 import { TeacherSummary } from '@/components/calendar/TeacherSummary';
+import { ColorKeywords } from '@/components/calendar/ColorKeywords';
 
 export default function WeeklyCalendarPage() {
   return (
@@ -10,8 +11,9 @@ export default function WeeklyCalendarPage() {
           <WeeklyGrid />
         </Suspense>
       </div>
-      <div className="w-full lg:w-64 p-3 border-t lg:border-t-0 lg:border-l overflow-auto">
+      <div className="w-full lg:w-64 p-3 border-t lg:border-t-0 lg:border-l overflow-auto space-y-3">
         <TeacherSummary />
+        <ColorKeywords />
       </div>
     </div>
   );

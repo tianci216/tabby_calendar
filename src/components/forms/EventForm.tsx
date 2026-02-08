@@ -21,6 +21,8 @@ interface EventFormProps {
     endTime: string | null;
     room: string | null;
     teacherId: number | null;
+    isRecurring: boolean;
+    recurrencePeriod: string | null;
     notes: string | null;
   };
 }
@@ -40,6 +42,8 @@ export function EventForm({ teachers, initialData }: EventFormProps) {
   const [endTime, setEndTime] = useState(initialData?.endTime || '');
   const [room, setRoom] = useState(initialData?.room || '');
   const [teacherId, setTeacherId] = useState<number>(initialData?.teacherId || 0);
+  const [isRecurring, setIsRecurring] = useState(initialData?.isRecurring || false);
+  const [recurrencePeriod, setRecurrencePeriod] = useState(initialData?.recurrencePeriod || 'weekly');
   const [notes, setNotes] = useState(initialData?.notes || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -57,6 +61,8 @@ export function EventForm({ teachers, initialData }: EventFormProps) {
         endTime: endTime || null,
         room: room || null,
         teacherId: teacherId || null,
+        isRecurring,
+        recurrencePeriod: isRecurring ? recurrencePeriod : null,
         notes: notes || null,
       };
 
@@ -162,6 +168,25 @@ export function EventForm({ teachers, initialData }: EventFormProps) {
           </select>
         </div>
       )}
+
+      {/* Recurring */}
+      <div>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} />
+          <span className="text-sm font-medium text-gray-700">{t('recurring')}</span>
+        </label>
+        {isRecurring && (
+          <div className="mt-2 flex gap-3">
+            {(['daily', 'weekly', 'monthly'] as const).map((period) => (
+              <label key={period} className="flex items-center gap-1.5">
+                <input type="radio" value={period} checked={recurrencePeriod === period}
+                  onChange={() => setRecurrencePeriod(period)} />
+                <span className="text-sm">{t(period === 'weekly' ? 'weekly2' : period === 'monthly' ? 'monthly2' : 'daily')}</span>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">{t('notes')}</label>

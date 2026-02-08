@@ -43,6 +43,8 @@ export async function PUT(
   if (body.endTime !== undefined) updateData.endTime = body.endTime;
   if (body.room !== undefined) updateData.room = body.room;
   if (body.teacherId !== undefined) updateData.teacherId = body.teacherId;
+  if (body.isRecurring !== undefined) updateData.isRecurring = body.isRecurring;
+  if (body.recurrencePeriod !== undefined) updateData.recurrencePeriod = body.recurrencePeriod;
   if (body.notes !== undefined) updateData.notes = body.notes;
 
   const updated = db.update(events)
