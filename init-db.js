@@ -46,7 +46,11 @@ if (fs.existsSync(journalPath)) {
 
     db.transaction(() => {
       for (const stmt of statements) {
-        db.exec(stmt);
+        // Handle tables/indexes that already exist (e.g. from drizzle-kit push)
+        const safe = stmt.replace(/CREATE TABLE\b/gi, 'CREATE TABLE IF NOT EXISTS')
+                        .replace(/CREATE INDEX\b/gi, 'CREATE INDEX IF NOT EXISTS')
+                        .replace(/CREATE UNIQUE INDEX\b/gi, 'CREATE UNIQUE INDEX IF NOT EXISTS');
+        db.exec(safe);
       }
       db.prepare('INSERT INTO __drizzle_migrations (hash, created_at) VALUES (?, ?)').run(tag, Date.now());
     })();

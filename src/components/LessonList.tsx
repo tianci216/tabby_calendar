@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { t, type Locale } from '@/lib/i18n';
+import { formatDisplayDate } from '@/lib/calendar-utils';
 
 interface LessonTeacher {
   id: number;
@@ -73,7 +74,7 @@ export function LessonList({ lessons, totalLessons, allTeachers, locale }: Lesso
                 {t(locale, 'lessonOf', { current: lesson.lessonNumber, total: totalLessons })}
               </span>
               <span className="text-sm text-gray-500 ml-3">
-                {lesson.date} {lesson.startTime}-{lesson.endTime}
+                {formatDisplayDate(lesson.date)} {lesson.startTime}-{lesson.endTime}
               </span>
             </div>
             <div className="flex gap-2">

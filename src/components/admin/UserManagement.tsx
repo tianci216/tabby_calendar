@@ -20,7 +20,19 @@ export function UserManagement({ users, locale }: { users: User[]; locale: Local
 
   async function copyIcalUrl(user: User) {
     const url = `${window.location.origin}/api/ical/${user.icalToken}`;
-    await navigator.clipboard.writeText(url);
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      // Fallback for non-HTTPS contexts where clipboard API is unavailable
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
     setCopiedId(user.id);
     setTimeout(() => setCopiedId(null), 2000);
   }

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useT } from '@/lib/useLocale';
 import {
-  getWeekStart, getWeekEnd, formatDateStr, addDays, getWeekDays,
+  getWeekStart, getWeekEnd, formatDateStr, formatDisplayDate, addDays, getWeekDays,
   timeToMinutes, DAY_LABELS_SHORT, ROOM_IDS,
 } from '@/lib/calendar-utils';
 import Link from 'next/link';
@@ -110,26 +110,19 @@ export function WeeklyGrid() {
     router.replace(`/calendar/weekly?date=${formatDateStr(today)}`, { scroll: false });
   }
 
-  // Collect all unique time blocks
-  const timeBlocks = useMemo(() => {
-    const blocks = new Set<string>();
-    for (const lesson of data.lessons) {
-      blocks.add(`${lesson.startTime}-${lesson.endTime}`);
+  // Fixed hourly time slots from 09:00 to 22:00
+  const timeSlots = useMemo(() => {
+    const slots: { start: string; end: string; startMin: number }[] = [];
+    for (let h = 11; h < 24; h++) {
+      const start = `${String(h).padStart(2, '0')}:00`;
+      const end = `${String(h + 1).padStart(2, '0')}:00`;
+      slots.push({ start, end, startMin: h * 60 });
     }
-    for (const event of data.events) {
-      if (event.startTime && event.endTime) {
-        blocks.add(`${event.startTime}-${event.endTime}`);
-      }
-    }
-    return Array.from(blocks)
-      .map((b) => {
-        const [start, end] = b.split('-');
-        return { start, end, startMin: timeToMinutes(start) };
-      })
-      .sort((a, b) => a.startMin - b.startMin);
-  }, [data]);
+    return slots;
+  }, []);
 
-  // Build lookup: date -> room -> timeBlock -> items
+  // Build lookup: date -> room -> timeSlot -> items
+  // Items are placed in the hourly slot that contains their start time
   const grid = useMemo(() => {
     const map: Record<string, Record<string, Record<string, { lessons: CalendarLesson[]; events: CalendarEvent[] }>>> = {};
     for (const day of weekDays) {
@@ -137,31 +130,39 @@ export function WeeklyGrid() {
       map[dateStr] = {};
       for (const room of ROOM_IDS) {
         map[dateStr][room] = {};
-        for (const block of timeBlocks) {
-          map[dateStr][room][`${block.start}-${block.end}`] = { lessons: [], events: [] };
+        for (const slot of timeSlots) {
+          map[dateStr][room][`${slot.start}-${slot.end}`] = { lessons: [], events: [] };
         }
       }
     }
+    function findSlotKey(startTime: string): string | null {
+      const mins = timeToMinutes(startTime);
+      for (const slot of timeSlots) {
+        if (mins >= slot.startMin && mins < slot.startMin + 60) {
+          return `${slot.start}-${slot.end}`;
+        }
+      }
+      return null;
+    }
     for (const lesson of data.lessons) {
-      const blockKey = `${lesson.startTime}-${lesson.endTime}`;
-      const dateEntry = map[lesson.date];
-      if (dateEntry?.[lesson.room]?.[blockKey]) {
-        dateEntry[lesson.room][blockKey].lessons.push(lesson);
+      const slotKey = findSlotKey(lesson.startTime);
+      if (slotKey && map[lesson.date]?.[lesson.room]?.[slotKey]) {
+        map[lesson.date][lesson.room][slotKey].lessons.push(lesson);
       }
     }
     for (const event of data.events) {
       if (!event.startTime || !event.endTime) continue;
-      const blockKey = `${event.startTime}-${event.endTime}`;
+      const slotKey = findSlotKey(event.startTime);
+      if (!slotKey) continue;
       const rooms = event.room ? [event.room] : [...ROOM_IDS];
       for (const room of rooms) {
-        const dateEntry = map[event.date];
-        if (dateEntry?.[room]?.[blockKey]) {
-          dateEntry[room][blockKey].events.push(event);
+        if (map[event.date]?.[room]?.[slotKey]) {
+          map[event.date][room][slotKey].events.push(event);
         }
       }
     }
     return map;
-  }, [data, timeBlocks, weekDays]);
+  }, [data, timeSlots, weekDays]);
 
   // All-day events
   const allDayEvents = useMemo(() => {
@@ -188,7 +189,7 @@ export function WeeklyGrid() {
           </button>
           <button onClick={() => navigate(1)} className="p-1.5 hover:bg-gray-100 rounded text-lg">&rarr;</button>
           <span className="text-xs sm:text-sm font-medium ml-1">
-            {formatDateStr(weekStart)} ~ {formatDateStr(weekEnd)}
+            {formatDateStr(weekStart).replaceAll('-', '/')} ~ {formatDateStr(weekEnd).replaceAll('-', '/')}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -245,7 +246,7 @@ export function WeeklyGrid() {
                   }`}
                 >
                   <div>{t(DAY_LABELS_SHORT[i])}</div>
-                  <div className="text-[10px]">{day.getDate()}/{day.getMonth() + 1}</div>
+                  <div className="text-[10px]">{formatDisplayDate(day)}</div>
                 </button>
               );
             })}
@@ -276,11 +277,11 @@ export function WeeklyGrid() {
                     <div className="text-center text-xs text-gray-400 font-medium">Pal</div>
                   </div>
 
-                  {timeBlocks.length === 0 && !loading && (
+                  {timeSlots.length === 0 && !loading && (
                     <div className="text-center py-12 text-gray-400 text-sm">No items</div>
                   )}
 
-                  {timeBlocks.map((block) => (
+                  {timeSlots.map((block) => (
                     <div key={`${block.start}-${block.end}`}
                       className="grid grid-cols-[60px_1fr_1fr] gap-px border-b border-gray-100 py-1">
                       <div className="text-[10px] text-gray-500 pr-1 text-right">
@@ -327,7 +328,7 @@ export function WeeklyGrid() {
                       isToday ? 'bg-blue-50 font-bold text-blue-700' : ''
                     }`}>
                     <div>{t(DAY_LABELS_SHORT[i])}</div>
-                    <div className="text-xs text-gray-400">{day.getDate()}/{day.getMonth() + 1}</div>
+                    <div className="text-xs text-gray-400">{formatDisplayDate(day)}</div>
                   </div>
                 );
               })}
@@ -367,12 +368,12 @@ export function WeeklyGrid() {
             )}
 
             {/* Time block rows */}
-            {timeBlocks.length === 0 && !loading && (
+            {timeSlots.length === 0 && !loading && (
               <div className="text-center py-16 text-gray-400 text-sm">
                 No lessons or events this week
               </div>
             )}
-            {timeBlocks.map((block) => (
+            {timeSlots.map((block) => (
               <div key={`${block.start}-${block.end}`} className="grid border-b"
                 style={{ gridTemplateColumns: '80px repeat(14, 1fr)' }}>
                 <div className="border-r p-1 text-[10px] text-gray-500 text-right pr-2 whitespace-nowrap">

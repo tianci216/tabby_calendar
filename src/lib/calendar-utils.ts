@@ -55,5 +55,16 @@ export function timeToMinutes(time: string): number {
   return h * 60 + m;
 }
 
+// Format a Date or YYYY-MM-DD string as MM/DD for display
+export function formatDisplayDate(input: Date | string): string {
+  if (typeof input === 'string') {
+    const [, m, d] = input.split('-');
+    return `${m}/${d}`;
+  }
+  const m = String(input.getMonth() + 1).padStart(2, '0');
+  const d = String(input.getDate()).padStart(2, '0');
+  return `${m}/${d}`;
+}
+
 export const DAY_LABELS_SHORT = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 export const ROOM_IDS = ['rendez_vous', 'palomar'] as const;
